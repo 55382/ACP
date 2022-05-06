@@ -1,0 +1,419 @@
+---
+title: "L'Epanouissement Des Etudiants"
+author: "Akili Yosser & Ben Ali Hana"
+date: "20/04/2022"
+output: html_document
+---
+# Sujet
+L’épanouissement est considéré à la fois comme la base du développement personnel et son but ultime. Il désigne un état psychologique serein et équilibré, où l’individu arrive à se développer dans toutes ses possibilités.    
+Dans le cas d’un étudiant, l’épanouissement désigne le fait que ce dernier soi dans un état mental favorable, libéré de tous les tracas et angoisses qui l’empêchent d’avancer et de développer ses compétences.    
+
+# Objectifs
+Répondre à différentes questions :  
+-A quel point l'argent de poche de l'étudiant peut subvenir à ses besoins  ?  
+-Prend-t-il des médicaments contre le stress ou la pression ?  
+-est-ce-qu'il pratique le sport ?    
+
+## 1.Présentation de la base :
+
+La base de donnée {epanouissement_des_etudiants} est réalisée à l'aide d'un questionnaire qu'on a lancé en ligne. Elle comporte 591 lignes et 48 colonnes.  
+- La première partie représente l'horodateur le score qui indique si l'individu est épanoui ou non, et quelques informations personnelles: le sexe et la classe d'age.  
+- La deuxième partie est composée de 13 variables qui concernent la vie scolaire de l'étudiant telles que la présence dans les sénances de cours(pres_cours), sa fréquence (pres_freq), l'organisation de l'emploi du temps (emploi.organisation) et l'encadrement.  
+- La troisième partie comporte des variables qui décrivent l'état sanitaire de l'étudiant (psychique et physique) telles que : depression, la tristesse et l'inquiétude, si l'étudiant a des pensées suicidaires ou non, douleurs_dos, douleurs_estomac.  
+- La quatrième partie décrit les activités de l'étudiant sportives et associatives.
+
+
+
+## 2.Importer et explorer le jeu de données :  
+
+```{r }
+library(FactoMineR)
+data=read.csv("epanouissement_des_etudiants.csv")
+head(data)
+```
+
+
+```{r}
+library(ggplot2)
+pie <- ggplot(data, aes(x = "sexe", fill = sexe)) +
+ geom_bar(width = 1) 
+pie + coord_polar(theta = "y")
+library(ggplot2)
+pie <- ggplot(data, aes(x = "maladies chroniques", fill = sexe)) +
+ geom_bar(width = 1) 
+pie + coord_polar(theta = "y")
+
+```
+```{r}
+library(ggplot2)
+ggplot(data, aes(x=pres_cours, fill=pres_cours )) + 
+  geom_bar( ) +
+  scale_fill_brewer(palette = "Set1") +
+  theme(legend.position="none")
+
+
+
+ ggplot(data, aes(x=pres_cours,y=pres_cours,  fill=sexe)) + 
+  geom_bar(stat='identity') +
+  theme_bw() 
+ 
+  ggplot(data, aes(x=maladies_chroniques,fill=maladies_héréditaires )) + 
+  geom_bar() +
+  theme_bw() 
+  ggplot(data, aes(x=maladies_chroniques,fill=fumeur )) + 
+  geom_bar() +
+  theme_bw() 
+  ggplot(data, aes(x=maladies_chroniques,fill=Pratique_.du_sport )) + 
+  geom_bar() +
+  theme_bw() 
+```
+
+
+
+## Nettoyage de la base :
+
+Il faut commencer par vérifier l'existance des valeurs manquantes:
+
+```{r }
+sum(is.na(data))
+data <- na.omit(data)
+
+```
+Puisque ma base comporte 50/591 valeurs manquantes on peut les enlever
+
+
+# choix des colonnes
+```{r }
+library(dplyr)
+data1=select(data,encadrement,formation,interdivert, interetu, argentdiver,sports_collectifs,vie_associative,stress,mauvaise_concentration,etat_memoire,maux_de_tête)
+
+#data1=select(data,argentnecess,argentedu,argentdiver,depression,tristesse.inquietude,stress,mauvaise_concentration,etat_memoire,maux_de_tête)
+head(data1)
+```
+
+```{r}
+
+ 
+#Load the library
+library(DataExplorer)
+introduce(data1)
+
+
+
+```
+
+
+
+```{r}
+
+plot_histogram(data1)
+
+
+
+```
+
+
+
+
+
+# ACP normée avec le package FactoMineR et interprétation de l’ACP.
+
+Utilisons maintenant la fonction PCA pour retrouver les résultats obtenus précédemment.
+
+
+Notons que nous utilisons le package factoextra plutôt que FactoMineR pour la qualité de ces graphiques.
+
+### 1. Pertinence de l’ACP
+
+Le corrgram donné ci-dessous permet d’étudier les corrélations entre les variables quantitatives:
+```{r }
+library(corrplot)
+X=as.matrix(data1)
+M<-cor(X)
+library(RColorBrewer)
+corrplot(M, type="upper", order="hclust", 
+         col=brewer.pal(n=8, name="RdBu"))
+
+```
+La matrice de corrélation montre que les variables encadrement et formation sont fortement et positivement correlées ainsi que l'état de mémoire,la mauvaise_concentration,le stress et les maux_de_tête.  
+- Alors que les modalités sports_collectifs et stress sont corrélées négativement ainsi que sports_collectifs et etat_memoire, sports_collectifs  et maux_de_tete.  
+- Les modalités interdivert (l'utilisation de l'internet dans le divertissement) et etat_memoire sont positivement corrolées.  
+
+
+
+## 2. Choix du nombre d’axes à retenir
+Trois critères devront être utlisés : taux d’inertie cumulé, critère de Kaiser et critère du coude.
+
+L’objet eig est une matrice à trois colonnes contenants respectivement les valeurs propres de l’ACP, la proportion de variance de chaque composante et les variance cumulées par les composantes principales.
+
+```{r }
+library(factoextra)
+res.pca=PCA(data1,ncp = 5,scale.unit=TRUE,graph = F)
+head(res.pca$eig)
+
+```
+
+Les 2 premiers axes de l’ analyse expriment 35.06% de l’inertie totale du jeu de données ; cela signifie que 35.06% de la variabilité totale du nuage des individus (ou des variables) est représentée dans ce plan. C’est un pourcentage relativement moyen.
+Du fait de ces observations, il serait alors probablement nécessaire de considérer également les dimensions supérieures ou égales à la troisième dans l’analyse.
+```{r }
+fviz_screeplot(res.pca, ncp=10)
+
+```
+  **Figure 2 - Décomposition de l'inertie totale**
+
+Une estimation du nombre pertinent d'axes à interpréter suggère de restreindre l'analyse à la description des 4 premiers axes.
+Ces composantes révèlent un taux d'inertie supérieur à celle du quantile 0.95-quantile de distributions aléatoires (57.01% contre 42.68%).
+Cette observation suggère que seuls ces axes sont porteurs d'une véritable information.
+En conséquence, la description de l'analyse sera restreinte à ces seuls axes.
+
+### 3. Interprétation de la carte des variables
+L’objet var de res.pca contient les 4 objets : coord, cor, cos2 et contrib. A noter que vu que notre ACP est normée, cor (i.e. la corrélations d’une variable avec la composante principale d’un axe) est identique à coord (i.e. la coordonnée de cette variable sur cet axe).
+
+```{r }
+names(res.pca$var)
+
+```
+L’objet coord dans var contient les coordonnées des variables.
+
+```{r }
+res.pca$var$coord
+
+```
+L’objet cos2 dans var est une matrice dont les lignes représentent le cos carrés de la variable (soit le carrée des coordonnées puisque l’ACP est normée).
+
+```{r }
+res.pca$var$cos2
+
+```
+
+
+
+```{r }
+fviz_pca_var(res.pca, col.var="cos2") +
+  scale_color_gradient2(low="white", mid="blue", 
+                        high="RED", midpoint=0.2) + 
+  theme_minimal()
+fviz_pca_var(res.pca, col.var = "contrib", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),repel = TRUE)
+
+```
+
+
+
+
+**Figure 3.2 - Graphe des variables (ACP)**
+*Les variables libellées sont celles les mieux représentées sur le plan.*
+
+* * *
+
+La **dimension 1** 
+
+
+oppose des individus caractérisés par une coordonnée fortement positive sur l'axe (à droite du graphe)
+à des individus caractérisés par une coordonnée fortement négative sur l'axe (à gauche du graphe).
+
+Le groupe 1 (caractérisés par une coordonnée positive sur l'axe) partage :
+
+- de fortes valeurs pour les variables *stress*, *mauvaise_concentration*, *etat_memoire*, *maux_de_tête* et *interdivert* (de la plus extrême à la moins extrême).
+- de faibles valeurs pour les variables *sports_collectifs*, *argentdiver* et *vie_associative* (de la plus extrême à la moins extrême).( a des contributions faibles)
+
+==> l'axe 1 Caracterise les troubles  psychologique et physique   des etudiants 
+
+
+
+
+
+
+La **dimension 2** caractérisés par des :
+
+- de fortes valeurs pour les variables *formation*, *encadrement*
+==> l'axe 2 traduit le degre de satisafaction des etudiants a propos la formation et l'encadremment 
+
+
+
+
+- - -
+
+
+```{r }
+drawn <-
+c("interdivert", "interetu", "argentdiver", "vie_associative", 
+"sports_collectifs")
+par(mar = c(4.1, 4.1, 1.1, 2.1))
+plot.PCA(res.pca, select = drawn, axes = 3:4, choix = 'var', title = '', cex = 0.7)
+
+```
+
+
+
+**Figure 4.2 - Graphe des variables (ACP)**
+*Les variables libellées sont celles les mieux représentées sur le plan.*
+
+* * *
+
+La **dimension 4***  caractérisée par  :
+
+- de fortes valeurs pour les variables *argentdiver*, *sports_collectifs*, *vie_associative*, *interdivert*  (de la plus extrême à la moins extrême).
+==>cette axe traduit l'epanouissement physique (sport )et sociale des etudiants 
+
+* * *
+
+La **dimension 3**  
+
+- de fortes valeurs pour la  variable *interdivert* opposant les fortes valeures pour la variable *interetu* 
+==> l'axe 3 traduit l'attitude fréquente  des etudiants concernant  de l'internet soit pour le  divertissemement ou pour les études 
+
+
+
+- - -
+
+
+
+#  Graphe des individus :
+
+```{r}
+
+
+fviz_pca_ind(res.pca, col.ind = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+            
+)
+
+fviz_pca_ind(res.pca,axes=c(4, 5),geom = "point",col.ind.sup = 'gray')
+```
+
+
+
+
+
+
+```{r}
+plot.PCA(res.pca, axes=c(4, 2), choix="ind", cex=0.7)
+```
+
+
+
+CLustering using HCPC 
+```{r}
+dd <- dist(scale(data1), method = "euclidean")
+hc <- hclust(dd, method = "ward.D2")
+plot(hc, hang = -1, cex = 0.6)
+library(FactoMineR)
+res.HCPC<-HCPC(res.pca,consol=TRUE,graph=FALSE)
+plot.HCPC(res.HCPC,choice='tree',title='Hierarchical tree')
+```
+
+
+- Arbre hiérarchique.
+La classification réalisée sur les individus fait apparaître 3 classes. on peut les projeter sur la carte de dimension 1 et 2 ou encore visualiser l'arbre Hiearchique sur le plan 3D
+```{r}
+plot.HCPC(res.HCPC,choice='map',draw.tree=FALSE,title='Factor map')
+plot.HCPC(res.HCPC,choice='3D.map',ind.names=FALSE,centers.plot=FALSE,angle=60,title='Hierarchical tree on the factor map') 
+```
+
+Descriptions des classes 
+```{r}
+ 
+head(res.HCPC$data.clust) # cette commande nous  montre a quelle classe appartient chaque individu
+```
+
+**Remarque**  
+Description des classes par les individus dans notre cas n'est pas utile car si on visualise l'individu le plus caractéristique en classe ;en d'autre termes le plus eloigné des autres classes ça ne fournit pas grand chose surtout que les individus n'ont pas des noms ils sont libellés par des numeros 
+# Description des classe par les variables /Axes factoriels 
+```{r}
+res.HCPC$desc.var  # Description des classe par les variables 
+#Eta decrit le rapport le correlation entre variable et les classes Globalement 
+#puis entrons dans les details on decrit chaque classe par les variables qui ont un V test significatif superieure à deux en valeur absolue
+#si c'est positive indique qu'elle est superieure a la moyenne sinon le contraire
+res.HCPC$desc.axes  # Description des classe par les axes factoriels 
+# on cherche si les indivudus de chaque ont des valeurs significativelment plus faibles ou plus fortes par rapport aux autres sur les axes factoriels
+```
+
+## En Conclusion 
+
+
+
+-Classification Ascendante Hiérachique des individus montre que:
+
+**La classe 1** est composé d’individus partageant :
+
+de fortes valeurs pour les variables formation, encadrement, vie_associative, sports_collectifs et argentdiver (de la plus extrême à la moins extrême).
+de faibles valeurs pour les variables stress, mauvaise_concentration, etat_memoire, maux_de_tête et interetu (de la plus extrême à la moins extrême).
+
+
+
+**La classe 2** est composé d’individus partageant :
+
+de fortes valeurs pour la variable interetu.
+de faibles valeurs pour les variables formation, mauvaise_concentration, interdivert, encadrement et argentdiver (de la plus extrême à la moins extrême).
+
+
+
+**La classe 3** est composé d’individus partageant :
+
+de fortes valeurs pour les variables mauvaise_concentration, stress, etat_memoire, maux_de_tête et interdivert (de la plus extrême à la moins extrême).
+de faibles valeurs pour les variables vie_associative, sports_collectifs et argentdiver (de la plus extrême à la moins extrême).
+
+
+
+#ACM
+L’objectif est d’identifier:
+Un groupe de personnes ayant un profil similaire dans leurs réponses aux questions.
+```{r}
+
+data2=select(data,fumeur,Pratique_.du_sport,pres_cours,med_antistress,Pratique_.du_sport) 
+```
+
+## Calcul le taux d’inertie cumulé des 2 premiers axes de cette ACM:
+
+
+
+```{r}
+res.MCA<-MCA(data2,graph=FALSE)
+res.MCA$eig
+```
+##  Nombre d’axes à retenir en vous basant sur 3 critères différents.
+
+Critère : Tracer le graphique des valeurs propres et noter que le coude se trouve au niveau du deuxième axe.
+
+
+```{r}
+fviz_screeplot(res.MCA)
+```
+
+
+
+```{r}
+plot.MCA(res.MCA, choix='var',title="Graphe des variables")
+plot.MCA(res.MCA,title="Graphe de l'ACM",label =c('ind','var'))
+```
+On remarque q
+
+
+```{r}
+
+#Représentation de la première carte des modalités
+fviz_mca_var (res.MCA,
+              repel = TRUE, 
+              ggtheme = theme_minimal ())
+
+
+```
+
+
+
+```{r}
+
+# Sélectionner et visualiser les modalités avec cos2 >= 0.4
+fviz_mca_var(res.MCA, select.var = list(cos2 = 0.3))
+
+dimdesc(res.MCA, axes=1:2, proba=0.05)$`Dim 1`
+```
+
+
+on remarque que pour **la dimension 1**   
+la modalité Pratique du sport_oui(avec contrib=27% )(vtest=-15)
+oppose la modalité med_antistress_oui (avec contrib=28%)(v_test=15)
+Concernant **la dimension 2**  
+elle ne fournit pas un résultat pertinant car  les  contributions sur  l'axe négative  des modalites opposées sont très faibles
+
+
